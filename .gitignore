@@ -9,3 +9,10 @@ src/*.so
 *~
 *.swp
 *.swo
+
+# Local development and testing
+.Rprofile
+/Renv
+
+# Benchmarks: generated artifacts
+/benchmarks/golden/
