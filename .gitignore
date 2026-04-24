@@ -4,8 +4,8 @@
 .Ruserdata
 .Renviron
 .Rproj.user
-src/*.o
-src/*.so
+*.o
+*.so
 *~
 *.swp
 *.swo

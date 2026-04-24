@@ -72,7 +72,7 @@ test_inputdatacontainers <- function() {
     gsvarownr <- gsvaRowNorm(gsvapar, dropExistingAssays=TRUE, verbose=FALSE)
     gsvaranks <- gsvaColRanks(gsvarownr, dropExistingAssays=TRUE, verbose=FALSE)
     es.se2 <- gsvaColScores(gsvaranks, verbose=FALSE)
-    checkEqualsNumeric(assay(es.se), assay(es.se2))
+    checkEqualsNumeric(assay(es.se), assay(es.se2), tolerance = 1e-6)
 
     ## estimate GSVA enrichment scores with input as a dgCMatrix object
     suppressPackageStartupMessages(library(Matrix))

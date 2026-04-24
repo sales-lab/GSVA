@@ -1,3 +1,10 @@
+#ifndef RANKS_H
+#define RANKS_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <R.h>
 #include <Rdefines.h>
 
@@ -26,3 +33,9 @@ ranks_ctx_t* ranks_ctx_create(SEXP XR, Rboolean intrnks, Rboolean sparse);
 
 void ranks2stats(ranks_ctx_t* ctx, int j, int* decordstat, double* symrnkstat);
 void ranks2stats_nas(ranks_ctx_t* ctx, int j, int* decordstat, double* symrnkstat);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // RANKS_H

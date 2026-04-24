@@ -2,6 +2,7 @@
 #include <Rinternals.h>
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h>
+#include "cuda/cbind.h"
 
 /* prototypes of functions to be registered */
 
@@ -41,9 +42,15 @@ SEXP
 ecdfvals_svt_to_svt_R(SEXP XsvtR, SEXP verboseR);
 
 SEXP
-gsva_score_genesets_R(SEXP ranksR, SEXP genesetsidxR, SEXP intrnksR,
-                      SEXP sparseR, SEXP maxdiffR, SEXP absrnkR, SEXP tauR,
-                      SEXP anynaR, SEXP nauseR, SEXP minsizeR, SEXP verboseR);
+gsva_score_genesets_cpu_R(SEXP ranksR, SEXP genesetsidxR, SEXP intrnksR,
+                          SEXP sparseR, SEXP maxdiffR, SEXP absrnkR, SEXP tauR,
+                          SEXP anynaR, SEXP nauseR, SEXP minsizeR, SEXP verboseR);
+ 
+SEXP
+order_rankstat_sparse_to_dense_R(SEXP XCspR, SEXP jR);
+
+SEXP
+order_rankstat_sparse_to_sparse_R(SEXP XCspR, SEXP jR);
 
 SEXP
 fetch_row_nzvals_R(SEXP svtR, SEXP iR, SEXP whimin1R);
@@ -76,7 +83,8 @@ static R_CallMethodDef callMethods[] = {
   {"ecdfvals_svt_to_svt_R", (DL_FUNC) &ecdfvals_svt_to_svt_R, 2},
   {"ecdfvals_dense_to_dense_R", (DL_FUNC) &ecdfvals_dense_to_dense_R, 2},
   {"ecdfvals_dense_to_dense_nas_R", (DL_FUNC) &ecdfvals_dense_to_dense_nas_R, 2},
-  {"gsva_score_genesets_R", (DL_FUNC) &gsva_score_genesets_R, 11},
+  {"gsva_score_genesets_cpu_R", (DL_FUNC) &gsva_score_genesets_cpu_R, 11},
+  {"gsva_score_genesets_gpu_R", (DL_FUNC) &gsva_score_genesets_gpu_R, 9},
   {"fetch_row_nzvals_R", (DL_FUNC) &fetch_row_nzvals_R, 3},
   {"row_rngs_nzrngs_RsparseMatrix_R", (DL_FUNC) &row_rngs_nzrngs_RsparseMatrix_R, 2},
   {"rowbycols_rngs_nzrngs_SVT_SparseMatrix_R", (DL_FUNC) &rowbycols_rngs_nzrngs_SVT_SparseMatrix_R, 2},

@@ -57,7 +57,7 @@ test_gsvaCcode <- function() {
                                          any_na=anyNA(param),
                                          na_use=GSVA:::.get_NAuse(param),
                                          minSize=GSVA:::get_minSize(param),
-                                         wna_env=wna_env, verbose=FALSE)
+                                         wna_env=wna_env, device="cpu", verbose=FALSE)
 
     ## both approaches to calculate GSVA scores must give
     ## the same result
@@ -114,7 +114,7 @@ test_gsvaCcode <- function() {
                                          any_na=anyNA(param),
                                          na_use=GSVA:::.get_NAuse(param),
                                          minSize=GSVA:::get_minSize(param),
-                                         wna_env=wna_env, verbose=FALSE)
+                                         wna_env=wna_env, device="cpu", verbose=FALSE)
 
     ## both approaches to calculate GSVA scores must give
     ## the same result
@@ -163,7 +163,7 @@ test_gsvaCcode <- function() {
                                          any_na=anyNA(param),
                                          na_use=GSVA:::.get_NAuse(param),
                                          minSize=GSVA:::get_minSize(param),
-                                         wna_env=wna_env, verbose=FALSE)
+                                         wna_env=wna_env, device="cpu", verbose=FALSE)
 
     ## both approaches to calculate GSVA scores must give
     ## the same result

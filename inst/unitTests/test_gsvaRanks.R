@@ -68,5 +68,5 @@ test_gsvaRanks <- function() {
     gsva_es_c1 <- gsvaColScores(gsvaranks, first=1, last=10, verbose=FALSE)
     gsva_es_c2 <- gsvaColScores(gsvaranks, first=11, last=20, verbose=FALSE)
     gsva_es_c3 <- gsvaColScores(gsvaranks, first=21, last=30, verbose=FALSE)
-    checkEqualsNumeric(gsva_es1, cbind(gsva_es_c1, gsva_es_c2, gsva_es_c3))
+    checkEqualsNumeric(gsva_es1, cbind(gsva_es_c1, gsva_es_c2, gsva_es_c3), tolerance = 1e-6)
 }

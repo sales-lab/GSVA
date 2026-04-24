@@ -12,9 +12,9 @@
 extern SEXP GSVA_attrNAsSym;
 
 SEXP
-gsva_score_genesets_R(SEXP ranksR, SEXP genesetsidxR, SEXP intrnksR,
-                      SEXP sparseR, SEXP maxdiffR, SEXP absrnkR, SEXP tauR,
-                      SEXP anynaR, SEXP nauseR, SEXP minsizeR, SEXP verboseR) {
+gsva_score_genesets_cpu_R(SEXP ranksR, SEXP genesetsidxR, SEXP intrnksR,
+                          SEXP sparseR, SEXP maxdiffR, SEXP absrnkR, SEXP tauR,
+                          SEXP anynaR, SEXP nauseR, SEXP minsizeR, SEXP verboseR) {
   int      p, n;
   int      m = length(genesetsidxR);
   Rboolean intrnks=asLogical(intrnksR);

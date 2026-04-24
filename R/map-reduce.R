@@ -176,6 +176,7 @@ gsvaMap <- function(FUN, inputData, returnPath=FALSE, verbose=TRUE,
         } else
             funargs <- c(funargs, list(recompute_nzcount=TRUE))
         assay <- "gsvaranks"
+        funargs <- c(funargs, list(device="cpu"))
 
     } else
         cli_abort(c("x"="Internal error, invalid FUN argument."))

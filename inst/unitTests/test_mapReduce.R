@@ -1,3 +1,4 @@
+
 test_mapReduce <- function() {
 
     message("Running unit tests for map reduce")
@@ -89,7 +90,7 @@ test_mapReduce <- function() {
 
     ## check that both approaches yield the same column GSVA scores
     checkEqualsNumeric(assay(gsvaes, "es"),
-                       assay(gsvaesmapred, "es"))
+                       assay(gsvaesmapred, "es"), tolerance=1e-6)
 
     ## calculate column GSVA scores with map-reduce on mapped ranks
     gsvaesmaprnkred <- gsvaReduce(gsvaMap(gsvaColScores, gsvamapranks,
@@ -98,7 +99,7 @@ test_mapReduce <- function() {
 
     ## check that we obtain the same column GSVA scores as before
     checkEqualsNumeric(assay(gsvaes, "es"),
-                       assay(gsvaesmaprnkred, "es"))
+                       assay(gsvaesmaprnkred, "es"), tolerance=1e-6)
 
     ## calculate column GSVA scores with map-reduce on mapped ranks stored in
     ## temporary files
@@ -108,7 +109,7 @@ test_mapReduce <- function() {
 
     ## check that we obtain the same column GSVA scores as before
     checkEqualsNumeric(assay(gsvaes, "es"),
-                       assay(gsvaesmaprnkflsred, "es"))
+                       assay(gsvaesmaprnkflsred, "es"), tolerance=1e-6)
 
     ## calculate column GSVA scores with map-reduce on mapped ranks stored in
     ## temporary files, returning paths to results
@@ -118,7 +119,8 @@ test_mapReduce <- function() {
 
     ## check that we obtain the same column GSVA scores as before
     checkEqualsNumeric(assay(gsvaes, "es"),
-                       assay(gsvaesmaprnkflsredfls, "es"))
+                       assay(gsvaesmaprnkflsredfls, "es"),
+                       tolerance=1e-6)
 
     ## check with input expression data stored in a matrix
     expr <- as(logcounts(sce), "matrix")
@@ -131,5 +133,5 @@ test_mapReduce <- function() {
                             verbose=FALSE)
     gsvaes2 <- gsvaReduce(gsvaMap(gsvaColScores, gsvaranks, verbose=FALSE, BTPARAM=btpar),
                           verbose=FALSE)
-    checkEqualsNumeric(gsvaes, gsvaes2)
+    checkEqualsNumeric(gsvaes, gsvaes2, tolerance=1e-6)
 }

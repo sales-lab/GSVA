@@ -35,7 +35,8 @@ gsvaColScores(
   last = NA_real_,
   recompute_nzcount = FALSE,
   BPPARAM = SerialParam(progressbar = verbose),
-  maxmem = "auto"
+  maxmem = "auto",
+  device = "cpu"
 )
 }
 \arguments{
@@ -108,6 +109,9 @@ object or a \code{list} object.}
 \item{recompute_nzcount}{Logical vector of length 1. When \code{TRUE}, the number
 of non-zero rows in the input expression data will be recomputed, internally
 used only.}
+
+\item{device}{The device to use for the calculation. Possible values
+are "cpu" (default) and "gpu".}
 }
 \value{
 In the case of 'gsvaRowNorm()', an object of the same class as the

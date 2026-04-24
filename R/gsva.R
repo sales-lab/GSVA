@@ -771,6 +771,9 @@ setMethod("details",
 #' `last=NA_real_`, which implies that calculations end at the last row or
 #' column of the input expression data.
 #'
+#' @param device The device to use for the calculation. Possible values
+#' are "cpu" (default) and "gpu".
+#'
 #' @param BPPARAM An object of class `BiocParallelParam` specifying parameters
 #' related to the parallel execution of some of the tasks and calculations
 #' within this function.
@@ -1053,7 +1056,7 @@ gsvaColRanks <- function(rowNormExprData,
 gsvaColScores <- function(rankExprData, geneSets, verbose=TRUE,
                           first=NA_real_, last=NA_real_, recompute_nzcount=FALSE,
                           BPPARAM=SerialParam(progressbar=verbose),
-                          maxmem="auto") {
+                          maxmem="auto", device="cpu") {
 
     if (!is(rankExprData, "GsvaExprData") &&
         !is.character(rankExprData))
@@ -1147,6 +1150,7 @@ gsvaColScores <- function(rankExprData, geneSets, verbose=TRUE,
                                   ondisk=ondisk, verbose=verbose,
                                   minparrows=100, minparcols=100,
                                   BPPARAM=BPPARAM,
+                                  device=device,
                                   maxmem=ceiling(maxmem/100)) ## use
                                   ## of memory increases here about
                                   ## 10-fold over block size memory
@@ -1795,7 +1799,7 @@ compute.col.ranks <- function(Z, ties.method="last", drop.sparsity=FALSE,
 #' @importFrom DelayedArray close
 .compute_gsva_scores <- function(R, geneSetsIdx, tau, maxDiff, absRanking,
                                  sparse, any_na, na_use, minSize, ondisk,
-                                 verbose) {
+                                 verbose, device) {
     p <- nrow(R)
     n <- ncol(R)
     es <- NULL
@@ -1826,7 +1830,8 @@ compute.col.ranks <- function(Z, ties.method="last", drop.sparsity=FALSE,
             block <- read_block(R, avp)
             block <- .gsva_score_genesets(block, geneSetsIdx, intrnks, sparse,
                                           maxDiff, absRanking, tau, any_na,
-                                          na_use, minSize, wna_env, verbose)
+                                          na_use, minSize, wna_env, verbose,
+                                          device)
             write_block(sink, avp_es, block)
         }
 
@@ -1839,7 +1844,7 @@ compute.col.ranks <- function(Z, ties.method="last", drop.sparsity=FALSE,
     } else {
         es <- .gsva_score_genesets(R, geneSetsIdx, intrnks, sparse, maxDiff,
                                    absRanking, tau, any_na, na_use, minSize,
-                                   wna_env, verbose)
+                                   wna_env, verbose, device)
     }
 
     if (any_na && na_use == "na.rm")
@@ -2241,7 +2246,7 @@ compute.col.ranks <- function(Z, ties.method="last", drop.sparsity=FALSE,
 #' @importFrom cli cli_abort
 .gsva_score_genesets <- function(R, geneSetsIdx, intrnks, sparse, maxDiff,
                                  absRanking, tau, any_na, na_use, minSize,
-                                 wna_env, verbose) {
+                                 wna_env, verbose, device) {
     minSize <- as.integer(minSize)
     stopifnot(is.list(geneSetsIdx)) ## QC
     stopifnot(length(geneSetsIdx) > 0) ## QC
@@ -2257,9 +2262,19 @@ compute.col.ranks <- function(Z, ties.method="last", drop.sparsity=FALSE,
     stopifnot(is.logical(verbose)) ## QC
     na_use <- as.integer(factor(na_use, levels=c("everything", "all.obs",
                                                  "na.rm")))
-    sco <- .Call("gsva_score_genesets_R", R, geneSetsIdx, intrnks, sparse,
-                 maxDiff, absRanking, as.double(tau), any_na, na_use, minSize,
-                 verbose)
+   
+    ## Dispatch to GPU or CPU implementation
+    use_gpu <- !any_na && device == "gpu"
+    if (use_gpu) {
+        sco <- .Call("gsva_score_genesets_gpu_R", R, geneSetsIdx, intrnks,
+                     sparse, maxDiff, absRanking, as.double(tau), minSize, verbose)
+        attr(sco, "attrNAs") <- NULL ## clean up the NA informing attribute
+        return(sco)
+    }
+    
+    sco <- .Call("gsva_score_genesets_cpu_R", R, geneSetsIdx, intrnks,
+                 sparse, maxDiff, absRanking, as.double(tau), any_na, na_use,
+                 minSize, verbose)
 
     if (any_na) {
       if (na_use == 2 && !is.null(attr(sco, "attrNAs")))
