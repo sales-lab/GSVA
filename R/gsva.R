@@ -2263,7 +2263,6 @@ compute.col.ranks <- function(Z, ties.method="last", drop.sparsity=FALSE,
     na_use <- as.integer(factor(na_use, levels=c("everything", "all.obs",
                                                  "na.rm")))
 
-    ## Dispatch to GPU or CPU implementation
     if (device == "gpu" && !.gsva_cuda_available()) {
         cli_abort(c(
             "x" = "GPU mode requested (device = \"gpu\") but this package was ",
@@ -2278,7 +2277,7 @@ compute.col.ranks <- function(Z, ties.method="last", drop.sparsity=FALSE,
     n_cols  <- ncol(R)
     sco <- matrix(NA_real_, nrow = n_gsets, ncol = n_cols)
 
-    if (!any_na && device == "gpu") {
+    if (!any_na && device == "gpu" && intrnks) {
         gset_sizes  <- lengths(geneSetsIdx)
         max_gpu_sz  <- .gsva_cuda_thread_num()
         gpu_idxs    <- which(gset_sizes <= max_gpu_sz)

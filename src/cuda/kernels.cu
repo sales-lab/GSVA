@@ -3,6 +3,126 @@
 #include <cub/cub.cuh>
 #include "kernels.cuh"
 
+__global__ void ranks2stats_gpu(
+    int fetch_type,
+    const int* __restrict__ dense_ranks,
+    const int* __restrict__ sparse_offt,
+    const int* __restrict__ sparse_vals,
+    const int* __restrict__ cell_offt,
+    const int* __restrict__ nnzpercell,
+    int* __restrict__ d_r,
+    int* __restrict__ decordstat,
+    double* __restrict__ symrnkstat,
+    int G,
+    int block_size,
+    int sparse_mode
+)
+{
+    int cell = blockIdx.x;
+    int tid  = threadIdx.x;
+    int threads = blockDim.x;
+    if (cell >= block_size) return;
+
+    int is_dense = (fetch_type == R2S_MATRIX_INT);
+    int nnz, nzs;
+
+    /* --- Phase 1: Init and scatter directly into global memory d_r[] --- */
+    if (is_dense) {
+        nnz = G;
+        nzs = 0;
+        /* Dense: copy directly into global scratch buffer */
+        const int* dr = dense_ranks + cell * G;
+        for (int g = tid; g < G; g += threads) {
+            d_r[cell * G + g] = dr[g];
+        }
+    } else {
+        /* Sparse: zero-init global region, then scatter stored entries */
+        int base = cell_offt[cell];
+        nnz = nnzpercell[cell];
+        nzs = G - nnz;
+
+        // Grid-stride zero-initialization of the cell's global rank buffer
+        for (int g = tid; g < G; g += threads) {
+            d_r[cell * G + g] = 0;
+        }
+        __syncthreads(); // Barrier: all threads must finish zero-init before scattering
+
+        // Scatter non-zero stored ranks into their correct gene positions
+        for (int i = tid; i < nnz; i += threads) {
+            int pos    = base + i;
+            int gene   = sparse_offt[pos];
+            int val    = sparse_vals[pos];
+            d_r[cell * G + gene] = val;  // Direct global memory write
+        }
+    }
+    __syncthreads(); // Barrier: all scatters complete before Phase 2 begins
+
+    /* --- Phase 2: Parallel prefix scan over d_r[] using global memory tiling --- */
+    if (!is_dense) {
+        struct ZeroCountPrefixOp {
+            int running_total;
+            __device__ ZeroCountPrefixOp(int r) : running_total(r) {}
+            __device__ int operator()(int chunk_zeros) {
+                int old = running_total;
+                running_total += chunk_zeros;
+                return old;
+            }
+        };
+
+        ZeroCountPrefixOp prefix_op(0);
+        int num_chunks = (G + threads - 1) / threads;
+
+        using BlockScan = cub::BlockScan<int, GSVA_R2S_THREADS>;
+        __shared__ typename BlockScan::TempStorage scan_storage;
+
+        for (int chunk = 0; chunk < num_chunks; chunk++) {
+            int idx = chunk * threads + tid;
+
+            // Read directly from global memory
+            int cur_val = (idx < G) ? d_r[cell * G + idx] : 0;
+            int is_zero = (cur_val == 0) ? 1 : 0;
+
+            // Exclusive scan across this chunk, auto-carry via callback
+            int scan_result = 0;
+            BlockScan(scan_storage).ExclusiveSum(is_zero, scan_result, prefix_op);
+
+            // Assign final rank directly back to global memory
+            if (idx < G) {
+                if (is_zero) {
+                    d_r[cell * G + idx] = scan_result + 1;
+                } else {
+                    d_r[cell * G + idx] = cur_val + nzs;
+                }
+            }
+            __syncthreads(); // Protect scan_storage reuse across chunks
+        }
+    }
+
+    /* --- Phase 3: Compute stats (parallel over genes, read from global d_r[]) --- */
+    for (int g = tid; g < G; g += threads) {
+        int rshifted = d_r[cell * G + g];  /* now holds SHIFTED rank in all cases */
+
+        /* decordstat = G - rshifted + 1 */
+        decordstat[cell * G + g] = G - rshifted + 1;
+
+        /* symrnkstat — choose formula */
+        if (sparse_mode && nzs > 0 && !is_dense) {
+            /* Sparse formula: uses RAW rank (before shift) */
+            /* rshifted <= nzs means it was an implicit zero */
+            if (rshifted > nzs) {
+                int raw_r = rshifted - nzs;
+                symrnkstat[cell * G + g] = fabs((double)(nnz + 1) / 2.0 - (double)(raw_r + 1));
+            } else {
+                /* was zero */
+                symrnkstat[cell * G + g] = fabs((double)(nnz + 1) / 2.0 - 1.0);
+            }
+        } else {
+            /* Dense formula: uses SHIFTED rank */
+            symrnkstat[cell * G + g] = fabs((double)G / 2.0 - (double)rshifted);
+        }
+    }
+}
+
 __global__ void gsea_walk_kernel(
     const int* __restrict__ gsetofft,
     const int* __restrict__ gsetidxs,
