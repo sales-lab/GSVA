@@ -11,6 +11,13 @@
 static inline int min2(int a, int b) { return a < b ? a : b; }
 static inline int max2(int a, int b) { return a > b ? a : b; }
 
+SEXP gsva_cuda_thread_num_R(void) {
+    SEXP res = PROTECT(allocVector(INTSXP, 1));
+    INTEGER(res)[0] = GSVA_THREAD_NUM;
+    UNPROTECT(1);
+    return res;
+}
+
 static void gsva_rnd_walk_gpu(
     const int*    h_decordstat,
     const double* h_symrnkstat,

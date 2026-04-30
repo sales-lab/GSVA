@@ -8,6 +8,8 @@
 extern "C" {
 #endif
 
+SEXP gsva_cuda_thread_num_R(void);
+
 SEXP
 gsva_score_genesets_gpu_R(SEXP ranksR, SEXP genesetsidxR, SEXP intrnksR,
                           SEXP sparseR, SEXP maxdiffR, SEXP absrnkR, SEXP tauR,

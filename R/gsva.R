@@ -2243,7 +2243,7 @@ compute.col.ranks <- function(Z, ties.method="last", drop.sparsity=FALSE,
   res
 }
 
-#' @importFrom cli cli_abort
+#' @importFrom cli cli_abort cli_alert_info
 .gsva_score_genesets <- function(R, geneSetsIdx, intrnks, sparse, maxDiff,
                                  absRanking, tau, any_na, na_use, minSize,
                                  wna_env, verbose, device) {
@@ -2262,28 +2262,60 @@ compute.col.ranks <- function(Z, ties.method="last", drop.sparsity=FALSE,
     stopifnot(is.logical(verbose)) ## QC
     na_use <- as.integer(factor(na_use, levels=c("everything", "all.obs",
                                                  "na.rm")))
-   
+
     ## Dispatch to GPU or CPU implementation
-    use_gpu <- !any_na && device == "gpu"
-    if (use_gpu) {
-        sco <- .Call("gsva_score_genesets_gpu_R", R, geneSetsIdx, intrnks,
-                     sparse, maxDiff, absRanking, as.double(tau), minSize, verbose)
-        attr(sco, "attrNAs") <- NULL ## clean up the NA informing attribute
-        return(sco)
+    if (device == "gpu" && !.gsva_cuda_available()) {
+        cli_abort(c(
+            "x" = "GPU mode requested (device = \"gpu\") but this package was ",
+                "built without CUDA support.",
+            "i" = "To use GPU acceleration, reinstall the package with the ",
+                "CUDA toolkit available.",
+            "i" = "Alternatively, use device = \"cpu\" (the default)."
+        ))
     }
-    
-    sco <- .Call("gsva_score_genesets_cpu_R", R, geneSetsIdx, intrnks,
-                 sparse, maxDiff, absRanking, as.double(tau), any_na, na_use,
-                 minSize, verbose)
 
-    if (any_na) {
-      if (na_use == 2 && !is.null(attr(sco, "attrNAs")))
-          cli_abort(c("x"="Input GSVA ranks have NA values."))
+    n_gsets <- length(geneSetsIdx)
+    n_cols  <- ncol(R)
+    sco <- matrix(NA_real_, nrow = n_gsets, ncol = n_cols)
 
-      if (na_use == 3 && !is.null(attr(sco, "attrNAs")))
-          assign("w", TRUE, envir=wna_env)
+    if (!any_na && device == "gpu") {
+        gset_sizes  <- lengths(geneSetsIdx)
+        max_gpu_sz  <- .gsva_cuda_thread_num()
+        gpu_idxs    <- which(gset_sizes <= max_gpu_sz)
+        cpu_idxs    <- which(gset_sizes >  max_gpu_sz)
 
-      attr(sco, "attrNAs") <- NULL ## clean up the NA informing attribute
+        if (length(cpu_idxs) > 0 && verbose) {
+            n_gpu_gsets <- length(gpu_idxs)
+            n_cpu_gsets <- length(cpu_idxs)
+            max_csize   <- max(gset_sizes[cpu_idxs])
+            cli_alert_info(
+                c("Hybrid GPU/CPU dispatch: {n_gpu_gsets} gene sets at most {max_gpu_sz} genes on GPU",
+                  "{n_cpu_gsets} gene sets max {max_csize} genes on CPU")
+            )
+        }
+    } else {
+        gpu_idxs <- integer(0)
+        cpu_idxs <- seq_len(n_gsets)
+    }
+
+    if (length(gpu_idxs) > 0) {
+        sco[gpu_idxs, ] <- .Call("gsva_score_genesets_gpu_R", R, geneSetsIdx[gpu_idxs],
+                                 intrnks, sparse, maxDiff, absRanking,
+                                 as.double(tau), minSize, verbose)
+    }
+
+    if (length(cpu_idxs) > 0) {
+        sco_cpu <- .Call("gsva_score_genesets_cpu_R", R, geneSetsIdx[cpu_idxs],
+                         intrnks, sparse, maxDiff, absRanking,
+                         as.double(tau), any_na, na_use,
+                         minSize, verbose)
+        if (any_na) {
+            if (na_use == 2 && !is.null(attr(sco_cpu, "attrNAs")))
+                cli_abort(c("x" = "Input GSVA ranks have NA values."))
+            if (na_use == 3 && !is.null(attr(sco_cpu, "attrNAs")))
+                assign("w", TRUE, envir = wna_env)
+        }
+        sco[cpu_idxs, ] <- sco_cpu
     }
 
     sco

@@ -23,6 +23,7 @@ __global__ void gsea_walk_kernel(
 
     int offset = gsetofft[gset];
     int k = gsetofft[gset + 1] - offset;
+    assert(k <= GSVA_THREAD_NUM && "gene set exceeds GPU shared-memory capacity");
 
     typedef cub::BlockRadixSort<int, GSVA_THREAD_NUM, 1, double> BlockRadixSort;
     union shared_mem_t {

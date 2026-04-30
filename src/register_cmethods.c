@@ -2,7 +2,10 @@
 #include <Rinternals.h>
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h>
+
+#ifdef HAVE_CUDA
 #include "cuda/cbind.h"
+#endif
 
 /* prototypes of functions to be registered */
 
@@ -84,7 +87,10 @@ static R_CallMethodDef callMethods[] = {
   {"ecdfvals_dense_to_dense_R", (DL_FUNC) &ecdfvals_dense_to_dense_R, 2},
   {"ecdfvals_dense_to_dense_nas_R", (DL_FUNC) &ecdfvals_dense_to_dense_nas_R, 2},
   {"gsva_score_genesets_cpu_R", (DL_FUNC) &gsva_score_genesets_cpu_R, 11},
+#ifdef HAVE_CUDA
+  {"gsva_cuda_thread_num_R", (DL_FUNC) &gsva_cuda_thread_num_R, 0},
   {"gsva_score_genesets_gpu_R", (DL_FUNC) &gsva_score_genesets_gpu_R, 9},
+#endif
   {"fetch_row_nzvals_R", (DL_FUNC) &fetch_row_nzvals_R, 3},
   {"row_rngs_nzrngs_RsparseMatrix_R", (DL_FUNC) &row_rngs_nzrngs_RsparseMatrix_R, 2},
   {"rowbycols_rngs_nzrngs_SVT_SparseMatrix_R", (DL_FUNC) &rowbycols_rngs_nzrngs_SVT_SparseMatrix_R, 2},

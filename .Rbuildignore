@@ -7,3 +7,4 @@
 ^\.jj$
 ^Renv$
 ^benchmarks$
+^Makeconf$

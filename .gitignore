@@ -9,6 +9,7 @@
 *~
 *.swp
 *.swo
+Makeconf
 
 # Local development and testing
 .Rprofile
