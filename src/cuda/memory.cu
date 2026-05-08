@@ -34,8 +34,8 @@ gsva_device_t* gsva_device_create(SEXP genesetsidxR, int G, Rboolean sparse) {
     size_t size_offt = (size_t)(S+1) * sizeof(int);
     size_t size_idxs = (size_t)gsetofft[S] * sizeof(int);
     size_t size_block_int    = (size_t)GSVA_BLOCK_C * G * sizeof(int);
-    size_t size_block_double = (size_t)GSVA_BLOCK_C * G * sizeof(double);
-    size_t size_es_block     = (size_t)S * GSVA_BLOCK_C * sizeof(double);
+    size_t size_block_float  = (size_t)GSVA_BLOCK_C * G * sizeof(gsva_float_t);
+    size_t size_es_block     = (size_t)S * GSVA_BLOCK_C * sizeof(gsva_float_t);
     size_t size_sparse_arr   = (size_t)G * GSVA_BLOCK_C * sizeof(int);
     size_t size_cell_offt    = (size_t)(GSVA_BLOCK_C + 1) * sizeof(int);
     size_t size_nnzpercell   = (size_t)GSVA_BLOCK_C * sizeof(int);
@@ -68,7 +68,7 @@ gsva_device_t* gsva_device_create(SEXP genesetsidxR, int G, Rboolean sparse) {
             ptr->dense_ranks[i] = NULL;
         }
         GSVA_CUDA_CALL(cudaMalloc(&ptr->decordstat[i], size_block_int));
-        GSVA_CUDA_CALL(cudaMalloc(&ptr->symrnkstat[i], size_block_double));
+        GSVA_CUDA_CALL(cudaMalloc(&ptr->symrnkstat[i], size_block_float));
         GSVA_CUDA_CALL(cudaMalloc(&ptr->es[i], size_es_block));
     }
 
@@ -98,7 +98,7 @@ void gsva_device_destroy(gsva_device_t* device) {
 gsva_host_t* gsva_host_create(int G, int S, Rboolean sparse) {
     gsva_host_t *h = (gsva_host_t*)R_alloc(1, sizeof(gsva_host_t));
 
-    size_t size_es = (size_t)S * GSVA_BLOCK_C * sizeof(double);
+    size_t size_es = (size_t)S * GSVA_BLOCK_C * sizeof(gsva_float_t);
 
     for (int i = 0; i < GSVA_CUDA_STREAMS; i++) {
         GSVA_CUDA_CALL(cudaMallocHost(&h->es[i], size_es, 0));

@@ -3,6 +3,7 @@
 
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#include "cuda/types.h"
 
 #define GSVA_THREAD_NUM 128
 #define GSVA_R2S_THREADS 512
@@ -22,7 +23,7 @@ __global__ void ranks2stats_gpu(
     const int* __restrict__ nnzpercell,
     int* __restrict__ d_r,
     int* __restrict__ decordstat,
-    double* __restrict__ symrnkstat,
+    gsva_float_t* __restrict__ symrnkstat,
     int G,
     int block_size,
     int sparse_mode
@@ -32,12 +33,12 @@ __global__ void gsea_walk_kernel(
     const int* __restrict__ gsetofft,
     const int* __restrict__ gsetidxs,
     const int* __restrict__ decordstat_block,
-    const double* __restrict__ symrnkstat_block,
-    double* __restrict__ out_es,
+    const gsva_float_t* __restrict__ symrnkstat_block,
+    gsva_float_t* __restrict__ out_es,
     int S,
     int G,
     int C,
-    double tau,
+    gsva_float_t tau,
     int score_type
 );
 

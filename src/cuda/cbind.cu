@@ -169,14 +169,14 @@ ranks2stats_gpu(ranks_ctx_t* ctx, int G, int block_c, int block_size,
 }
 
 static void gsva_rnd_walk_gpu(
-    double*       h_es,
+    gsva_float_t*       h_es,
     int S, int G, int C,
-    double tau, int score_type,
+    gsva_float_t tau, int score_type,
     gsva_device_t* device,
     int stream_idx
 ) {
     cudaStream_t stream = device->stream[stream_idx];
-    size_t size_es = (size_t)S * C * sizeof(double);
+    size_t size_es      = (size_t)S * C * sizeof(gsva_float_t);
 
     dim3 threadsPerBlock(GSVA_THREAD_NUM);
     dim3 numBlocks(C, S);
@@ -203,11 +203,11 @@ gsva_score_genesets_gpu_R(SEXP ranksR, SEXP genesetsidxR, SEXP intrnksR,
                           SEXP sparseR, SEXP maxdiffR, SEXP absrnkR, SEXP tauR,
                           SEXP minsizeR, SEXP verboseR) {
   Rboolean intrnks = (Rboolean)asLogical(intrnksR);
-  Rboolean sparse  = (Rboolean)asLogical(sparseR);
-  double tau = REAL(tauR)[0];
+  Rboolean sparse = (Rboolean)asLogical(sparseR);
+  gsva_float_t tau = (gsva_float_t)REAL(tauR)[0];
 
   Rboolean maxdiff = (Rboolean)asLogical(maxdiffR);
-  Rboolean absrnk  = (Rboolean)asLogical(absrnkR);
+  Rboolean absrnk = (Rboolean)asLogical(absrnkR);
   int score_type;
   if (maxdiff) {
     score_type = absrnk ? 1 : 0;
@@ -242,10 +242,10 @@ gsva_score_genesets_gpu_R(SEXP ranksR, SEXP genesetsidxR, SEXP intrnksR,
       int prev_end = min2(prev_c + GSVA_BLOCK_C, C);
       int prev_size = prev_end - prev_c;
 
-      double* prev_es = host->es[stream_idx];
+      gsva_float_t* prev_es = host->es[stream_idx];
       for (int s = 0; s < S; s++) {
           for (int c = 0; c < prev_size; c++) {
-              es[(prev_c + c) * S + s] = prev_es[s * prev_size + c];
+              es[(prev_c + c) * S + s] = (double)prev_es[s * prev_size + c];
           }
       }
     }
@@ -268,10 +268,10 @@ gsva_score_genesets_gpu_R(SEXP ranksR, SEXP genesetsidxR, SEXP intrnksR,
       int block_c_end = min2(block_c + GSVA_BLOCK_C, C);
       int block_size  = block_c_end - block_c;
 
-      double* h_es = host->es[stream_idx];
+      gsva_float_t* h_es = host->es[stream_idx];
       for (int s = 0; s < S; s++) {
           for (int c = 0; c < block_size; c++) {
-              es[(block_c + c) * S + s] = h_es[s * block_size + c];
+              es[(block_c + c) * S + s] = (double)h_es[s * block_size + c];
           }
       }
   }

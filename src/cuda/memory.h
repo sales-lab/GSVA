@@ -17,7 +17,7 @@ typedef struct {
 
     cudaStream_t stream[GSVA_CUDA_STREAMS];
 
-    int *r_scratch[GSVA_CUDA_STREAMS]; // [G*B_C] scratch for rank shift
+    int *r_scratch[GSVA_CUDA_STREAMS];   // [G*B_C] scratch for rank shift
 
     // Buffers for sparse ranks
     int *sparse_offt[GSVA_CUDA_STREAMS]; // [G*B_C] gene offsets
@@ -29,9 +29,9 @@ typedef struct {
     int *dense_ranks[GSVA_CUDA_STREAMS]; // [G*B_C] dense ranks
 
     // Buffers for random walk
-    int    *decordstat[GSVA_CUDA_STREAMS];
-    double *symrnkstat[GSVA_CUDA_STREAMS];
-    double *es[GSVA_CUDA_STREAMS];
+    int          *decordstat[GSVA_CUDA_STREAMS];
+    gsva_float_t *symrnkstat[GSVA_CUDA_STREAMS];
+    gsva_float_t *es[GSVA_CUDA_STREAMS];
 } gsva_device_t;
 
 gsva_device_t* gsva_device_create(SEXP genesetsidxR, int G, Rboolean sparse);
@@ -43,7 +43,7 @@ typedef struct {
     int *cell_offt[GSVA_CUDA_STREAMS];   // [B_C+1] prefix sum
     int *nnzpercell[GSVA_CUDA_STREAMS];  // [B_C] nnz per cell
 
-    double *es[GSVA_CUDA_STREAMS];
+    gsva_float_t *es[GSVA_CUDA_STREAMS];
 } gsva_host_t;
 
 gsva_host_t* gsva_host_create(int G, int S, Rboolean sparse);
