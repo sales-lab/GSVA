@@ -88,7 +88,6 @@ static R_CallMethodDef callMethods[] = {
   {"ecdfvals_dense_to_dense_nas_R", (DL_FUNC) &ecdfvals_dense_to_dense_nas_R, 2},
   {"gsva_score_genesets_cpu_R", (DL_FUNC) &gsva_score_genesets_cpu_R, 11},
 #ifdef HAVE_CUDA
-  {"gsva_cuda_thread_num_R", (DL_FUNC) &gsva_cuda_thread_num_R, 0},
   {"gsva_score_genesets_gpu_R", (DL_FUNC) &gsva_score_genesets_gpu_R, 9},
 #endif
   {"fetch_row_nzvals_R", (DL_FUNC) &fetch_row_nzvals_R, 3},

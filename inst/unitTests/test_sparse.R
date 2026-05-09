@@ -1,3 +1,5 @@
+source(system.file("unitTests", "test_helpers.R", package = "GSVA"))
+
 test_sparseMethods <- function(){
     message("Running unit tests for sparse methods")
     
@@ -29,9 +31,17 @@ test_sparseMethods <- function(){
     M <- Matrix(m, sparse=TRUE)
     
     checkException(mg <- gsva(gsvaParam(x, gsets), verbose=TRUE))
-    out <- cli_fmt(mg <- gsva(gsvaParam(m, gsets), verbose=TRUE))
-    out <- cli_fmt(Mg <- gsva(gsvaParam(M, gsets, sparse=FALSE), verbose=TRUE))
+    out <- cli_fmt(mg <- gsva(gsvaParam(m, gsets), verbose=TRUE, device="cpu"))
+    out <- cli_fmt(Mg <- gsva(gsvaParam(M, gsets, sparse=FALSE), verbose=TRUE, device="cpu"))
     checkEqualsNumeric(mg, Mg)
+
+    .run_with_gpu({
+        mg_gpu <- gsva(gsvaParam(m, gsets), verbose=FALSE, device="gpu")
+        .check_gpu_equiv(mg, mg_gpu)
+
+        Mg_gpu <- gsva(gsvaParam(M, gsets, sparse=FALSE), verbose=FALSE, device="gpu")
+        .check_gpu_equiv(Mg, Mg_gpu)
+    })
 
     out <- cli_fmt(mp <- gsva(plageParam(m, gsets), verbose=TRUE))
     out <- cli_fmt(Mp <- gsva(plageParam(M, gsets), verbose=TRUE))

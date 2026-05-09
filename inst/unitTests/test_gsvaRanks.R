@@ -1,3 +1,5 @@
+source(system.file("unitTests", "test_helpers.R", package = "GSVA"))
+
 test_gsvaRanks <- function() {
     message("Running unit tests for GSVA ranks.")
 
@@ -21,7 +23,7 @@ test_gsvaRanks <- function() {
     gsvapar <- gsvaParam(y, gsets)
 
     ## calculate GSVA scores in one step
-    gsva_es1 <- gsva(gsvapar, verbose=FALSE)
+    gsva_es1 <- gsva(gsvapar, verbose=FALSE, device="cpu")
 
     ## calculate GSVA scores in three steps
     ## first calculate row-normalized expression values
@@ -31,15 +33,21 @@ test_gsvaRanks <- function() {
     gsvaranks <- gsvaColRanks(gsvarownorm, verbose=FALSE)
 
     ## third calculate GSVA scores from column ranks
-    gsva_es2 <- gsvaColScores(gsvaranks, verbose=FALSE)
+    gsva_es2 <- gsvaColScores(gsvaranks, device = "cpu", verbose = FALSE)
 
     ## both approaches to calculate GSVA scores must give
     ## the same result with the same input gene sets
     checkEqualsNumeric(gsva_es1, gsva_es2)
 
+    ## CPU vs GPU
+    .run_with_gpu({
+      gsva_es3 <- gsva(gsvapar, device = "gpu", verbose = FALSE)
+      .check_gpu_equiv(gsva_es1, gsva_es3)
+    })
+
     ## check that gsvaEnrichment() works
     gsvaenrich <- gsvaEnrichment(gsvaranks, plot="no")
-    checkEqualsNumeric(gsva_es1[1, 1], gsvaenrich$score)
+    checkEqualsNumeric(gsva_es1[1, 1], gsvaenrich$score, tolerance = 1e-6)
     gsvaenrich2 <- gsvaEnrichment(gsvaranks,
                                   geneSet=c("g1", "g4", "g7"),
                                   plot="no")

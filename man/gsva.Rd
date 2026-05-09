@@ -12,7 +12,8 @@
   param,
   verbose = TRUE,
   BPPARAM = SerialParam(progressbar = verbose),
-  maxmem = "auto"
+  maxmem = "auto",
+  device = c("auto", "cpu", "gpu")
 )
 
 \S4method{gsva}{plageParam}(
@@ -74,6 +75,10 @@ By default \code{maxmem="auto"}, indicating that the maximum memory will be the
 maximum memory, use \code{maxmem=Inf}. Note that the amount of main memory used
 in an R session or script may depend on other commands and packages used in
 that same session or script.}
+
+\item{device}{The computational device to use. Options are "auto" (default),
+"cpu", or "gpu". When set to "auto", the function attempts to use the GPU,
+falling back to the CPU if no GPU is detected.}
 }
 \value{
 A gene-set by sample matrix of GSVA enrichment scores stored in a

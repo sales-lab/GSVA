@@ -38,6 +38,10 @@
 #' in an R session or script may depend on other commands and packages used in
 #' that same session or script.
 #'
+#' @param device The computational device to use. Options are "auto" (default),
+#' "cpu", or "gpu". When set to "auto", the function attempts to use the GPU,
+#' falling back to the CPU if no GPU is detected.
+#'
 #' @return A gene-set by sample matrix of GSVA enrichment scores stored in a
 #' container object of the same type as the input expression data container,
 #' except for the fact that enrichment scores are always dense, irrespective of
@@ -146,7 +150,8 @@ setMethod("gsva", signature(param="gsvaParam"),
           function(param,
                    verbose=TRUE,
                    BPPARAM=SerialParam(progressbar=verbose),
-                   maxmem="auto") {
+                   maxmem="auto",
+                   device=c("auto", "cpu", "gpu")) {
 
               if (verbose) {
                   pkgversion <- packageDescription("GSVA")[["Version"]]
@@ -155,6 +160,15 @@ setMethod("gsva", signature(param="gsvaParam"),
               }
 
               .check_bpparam(BPPARAM)
+
+              device <- match.arg(device)
+              if (device == "auto") {
+                  if (.gsva_cuda_available()) {
+                      device <- "gpu"
+                  } else {
+                      device <- "cpu"
+                  }
+              }
 
               gsvarnorm <- gsvaRowNorm(param=param, verbose=verbose,
                                        dropExistingAssays=TRUE,
@@ -168,7 +182,8 @@ setMethod("gsva", signature(param="gsvaParam"),
                                         maxmem=maxmem)
 
               es <- gsvaColScores(rankExprData=gsvaranks, verbose=verbose,
-                                  BPPARAM=BPPARAM, maxmem=maxmem)
+                                  BPPARAM=BPPARAM, maxmem=maxmem,
+                                  device=device)
 
               if (verbose) {
                   cli_alert_success("Calculations finished")
@@ -772,7 +787,8 @@ setMethod("details",
 #' column of the input expression data.
 #'
 #' @param device The device to use for the calculation. Possible values
-#' are "cpu" (default) and "gpu".
+#' are "auto" (default), "cpu", and "gpu". When set to "auto", the function
+#' attempts to use the GPU, falling back to the CPU if no GPU is detected.
 #'
 #' @param BPPARAM An object of class `BiocParallelParam` specifying parameters
 #' related to the parallel execution of some of the tasks and calculations
@@ -1056,7 +1072,8 @@ gsvaColRanks <- function(rowNormExprData,
 gsvaColScores <- function(rankExprData, geneSets, verbose=TRUE,
                           first=NA_real_, last=NA_real_, recompute_nzcount=FALSE,
                           BPPARAM=SerialParam(progressbar=verbose),
-                          maxmem="auto", device="cpu") {
+                          maxmem="auto",
+                          device=c("auto", "cpu", "gpu")) {
 
     if (!is(rankExprData, "GsvaExprData") &&
         !is.character(rankExprData))
@@ -1089,6 +1106,15 @@ gsvaColScores <- function(rankExprData, geneSets, verbose=TRUE,
     }
 
     .check_bpparam(BPPARAM)
+
+    device <- match.arg(device)
+    if (device == "auto") {
+        if (.gsva_cuda_available()) {
+            device <- "gpu"
+        } else {
+            device <- "cpu"
+        }
+    }
 
     ## assuming rows in the rank data have been already filtered
     filtDataMatrix <- unwrapData(rankExprData, "gsvaranks")
@@ -2277,9 +2303,9 @@ compute.col.ranks <- function(Z, ties.method="last", drop.sparsity=FALSE,
     n_cols  <- ncol(R)
     sco <- matrix(NA_real_, nrow = n_gsets, ncol = n_cols)
 
-    if (!any_na && device == "gpu" && intrnks) {
+    if (!any_na && device == "gpu") {
         gset_sizes  <- lengths(geneSetsIdx)
-        max_gpu_sz  <- .gsva_cuda_thread_num()
+        max_gpu_sz  <- 4096L
         gpu_idxs    <- which(gset_sizes <= max_gpu_sz)
         cpu_idxs    <- which(gset_sizes >  max_gpu_sz)
 

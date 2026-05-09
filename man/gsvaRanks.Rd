@@ -36,7 +36,7 @@ gsvaColScores(
   recompute_nzcount = FALSE,
   BPPARAM = SerialParam(progressbar = verbose),
   maxmem = "auto",
-  device = "cpu"
+  device = c("auto", "cpu", "gpu")
 )
 }
 \arguments{
@@ -111,7 +111,8 @@ of non-zero rows in the input expression data will be recomputed, internally
 used only.}
 
 \item{device}{The device to use for the calculation. Possible values
-are "cpu" (default) and "gpu".}
+are "auto" (default), "cpu", and "gpu". When set to "auto", the function
+attempts to use the GPU, falling back to the CPU if no GPU is detected.}
 }
 \value{
 In the case of 'gsvaRowNorm()', an object of the same class as the

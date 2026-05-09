@@ -16,7 +16,7 @@
 #' @importFrom SummarizedExperiment SummarizedExperiment
 #' @importFrom SingleCellExperiment SingleCellExperiment
 #' @importFrom SpatialExperiment SpatialExperiment
-#' @importFrom DelayedArray rowAutoGrid colAutoGrid defaultAutoGrid
+#' @importFrom DelayedArray rowAutoGrid colAutoGrid defaultAutoGrid currentBlockId read_block gridReduce write_block close t colSums
 #' @importFrom HDF5Array HDF5RealizationSink writeHDF5Array
 #' @importFrom cli cli_abort cli_alert_info cli_alert_warning cli_alert_success
 NULL

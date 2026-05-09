@@ -917,6 +917,3 @@ setMethod("wrapData", signature(container="SpatialExperiment"),
     }, error = function(e) FALSE)
 }
 
-.gsva_cuda_thread_num <- function() {
-    .Call("gsva_cuda_thread_num_R", PACKAGE = "GSVA")
-}
