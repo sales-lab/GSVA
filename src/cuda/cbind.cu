@@ -190,8 +190,8 @@ static void gsva_rnd_walk_gpu_dispatch(gsva_float_t *h_es, int S, int G, int C,
   dim3 numBlocks(C, S);
   cudaError_t err;
 
-  if (max_k <= 32) {
-    gsea_walk_kernel<1, 32><<<numBlocks, 32, 0, stream>>>(
+  if (max_k <= 64) {
+    gsea_walk_kernel<2, 32><<<numBlocks, 32, 0, stream>>>(
         device->gsetofft, device->gsetidxs, device->decordstat[stream_idx],
         device->symrnkstat[stream_idx], device->es[stream_idx], S, G, C, tau,
         score_type);
@@ -200,8 +200,18 @@ static void gsva_rnd_walk_gpu_dispatch(gsva_float_t *h_es, int S, int G, int C,
         device->gsetofft, device->gsetidxs, device->decordstat[stream_idx],
         device->symrnkstat[stream_idx], device->es[stream_idx], S, G, C, tau,
         score_type);
+  } else if (max_k <= 512) {
+    gsea_walk_kernel<2, 256><<<numBlocks, 256, 0, stream>>>(
+        device->gsetofft, device->gsetidxs, device->decordstat[stream_idx],
+        device->symrnkstat[stream_idx], device->es[stream_idx], S, G, C, tau,
+        score_type);
+  } else if (max_k <= 1024) {
+    gsea_walk_kernel<4, 256><<<numBlocks, 256, 0, stream>>>(
+        device->gsetofft, device->gsetidxs, device->decordstat[stream_idx],
+        device->symrnkstat[stream_idx], device->es[stream_idx], S, G, C, tau,
+        score_type);
   } else if (max_k <= 2048) {
-    gsea_walk_kernel<4, 512><<<numBlocks, 512, 0, stream>>>(
+    gsea_walk_kernel<8, 256><<<numBlocks, 256, 0, stream>>>(
         device->gsetofft, device->gsetidxs, device->decordstat[stream_idx],
         device->symrnkstat[stream_idx], device->es[stream_idx], S, G, C, tau,
         score_type);
