@@ -18,6 +18,7 @@
 
 #define GSVA_BLOCK_C 128
 #define GSVA_MAX_THREADS 128
+#define GSVA_CUDA_STREAMS 4
 
 #define GSVA_CUDA_CALL(call) do { \
     cudaError_t err = (call); \
