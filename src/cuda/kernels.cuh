@@ -207,22 +207,22 @@ __global__ void gsea_walk_kernel(
         if (tid == 0) out_es[c * S + gset] = 0.0f;
         return;
     }
-
     gsva_float_t thread_max_peak = -1e30f;
     gsva_float_t thread_min_valley = 1e30f;
     gsva_float_t neg_step = 1.0f / (gsva_float_t)(G - k);
+    gsva_float_t inv_stat_total = 1.0f / stat_total;
 
     for (int i = 0; i < GSVA_WALK_ITEMS; i++) {
         if (keys[i] == INT_MAX) continue;
 
         gsva_float_t stat_running = stat_sums[i] - vals[i];
-        gsva_float_t stat_norm = stat_running / stat_total;
+        gsva_float_t stat_norm = stat_running * inv_stat_total;
         gsva_float_t neg_penalty = (keys[i] - (thread_start + i)) * neg_step;
         gsva_float_t current_valley = stat_norm - neg_penalty;
         if (current_valley < thread_min_valley) thread_min_valley = current_valley;
 
         stat_running += vals[i];
-        stat_norm = stat_running / stat_total;
+        stat_norm = stat_running * inv_stat_total;
         gsva_float_t current_peak = stat_norm - neg_penalty;
         if (current_peak > thread_max_peak) thread_max_peak = current_peak;
     }
