@@ -44,13 +44,45 @@ gsva_device_t *gsva_device_create(SEXP genesetsidxR, int G, Rboolean sparse) {
 
   ptr->G = G;
   ptr->S = S;
-
   ptr->max_k = 0;
   for (int s = 0; s < S; s++) {
     SEXP gsetidxR = VECTOR_ELT(genesetsidxR, s);
     int k = length(gsetidxR);
     if (k > ptr->max_k)
       ptr->max_k = k;
+  }
+
+  int cat_count[GSVA_NUM_CATS] = {0};
+  for (int s = 0; s < S; s++) {
+    SEXP gsetidxR = VECTOR_ELT(genesetsidxR, s);
+    int k = length(gsetidxR);
+    if (k <= 160) cat_count[0]++;
+    else if (k <= 256) cat_count[1]++;
+    else if (k <= 644) cat_count[2]++;
+    else if (k <= 2048) cat_count[3]++;
+    else cat_count[4]++;
+  }
+
+  int *cat_gset[GSVA_NUM_CATS];
+  for (int cat = 0; cat < GSVA_NUM_CATS; cat++) {
+    if (cat_count[cat] > 0) {
+      cat_gset[cat] = (int *)R_alloc(cat_count[cat], sizeof(int));
+    } else {
+      cat_gset[cat] = NULL;
+    }
+  }
+  
+  int cat_pos[GSVA_NUM_CATS] = {0};
+  for (int s = 0; s < S; s++) {
+    SEXP gsetidxR = VECTOR_ELT(genesetsidxR, s);
+    int k = length(gsetidxR);
+    int cat;
+    if (k <= 160) cat = 0;
+    else if (k <= 256) cat = 1;
+    else if (k <= 644) cat = 2;
+    else if (k <= 2048) cat = 3;
+    else cat = 4;
+    cat_gset[cat][cat_pos[cat]++] = s;
   }
 
   GSVA_CUDA_CALL(cudaMalloc(&ptr->gsetofft, size_offt));
@@ -79,11 +111,23 @@ gsva_device_t *gsva_device_create(SEXP genesetsidxR, int G, Rboolean sparse) {
     GSVA_CUDA_CALL(cudaMalloc(&ptr->symrnkstat[i], size_block_float));
     GSVA_CUDA_CALL(cudaMalloc(&ptr->es[i], size_es_block));
   }
-
   GSVA_CUDA_CALL(
       cudaMemcpy(ptr->gsetofft, gsetofft, size_offt, cudaMemcpyHostToDevice));
   GSVA_CUDA_CALL(
       cudaMemcpy(ptr->gsetidxs, gsetidxs, size_idxs, cudaMemcpyHostToDevice));
+
+  for (int cat = 0; cat < GSVA_NUM_CATS; cat++) {
+    ptr->cat_count[cat] = cat_count[cat];
+    if (cat_count[cat] > 0) {
+      GSVA_CUDA_CALL(cudaMalloc(&ptr->cat_gset[cat],
+                                 (size_t)cat_count[cat] * sizeof(int)));
+      GSVA_CUDA_CALL(cudaMemcpy(ptr->cat_gset[cat], cat_gset[cat],
+                                 (size_t)cat_count[cat] * sizeof(int),
+                                 cudaMemcpyHostToDevice));
+    } else {
+      ptr->cat_gset[cat] = NULL;
+    }
+  }
 
   return ptr;
 }
@@ -108,6 +152,10 @@ void gsva_device_destroy(gsva_device_t *device) {
   }
   cudaFree(device->gsetofft);
   cudaFree(device->gsetidxs);
+  for (int cat = 0; cat < GSVA_NUM_CATS; cat++) {
+    if (device->cat_gset[cat])
+      cudaFree(device->cat_gset[cat]);
+  }
 }
 
 gsva_host_t *gsva_host_create(int G, int S, Rboolean sparse) {

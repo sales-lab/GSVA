@@ -104,7 +104,7 @@ __global__ void ranks2stats_gpu(
     for (int g = tid; g < G; g += threads) {
         int rshifted = d_r[cell * G + g];
         decordstat[cell * G + g] = G - rshifted + 1;
-        
+
         if (sparse_mode && nzs > 0 && fetch_type == R2S_SPARSE) {
             if (rshifted > nzs) {
                 int raw_r = rshifted - nzs;
@@ -126,6 +126,7 @@ __global__ void gsea_walk_kernel(
     const int* __restrict__ decordstat_block,
     const gsva_float_t* __restrict__ symrnkstat_block,
     gsva_float_t* __restrict__ out_es,
+    const int* __restrict__ cat_gset,
     int S,
     int G,
     int C,
@@ -159,10 +160,11 @@ __global__ void gsea_walk_kernel(
     __shared__ gsva_float_t thread_total;
 
     int c = blockIdx.x;
-    int gset = blockIdx.y;
+    int gset_local = blockIdx.y;
     int tid = threadIdx.x;
 
-    if (c >= C || gset >= S) return;
+    int gset = cat_gset[gset_local];
+    if (c >= C || gset_local >= S) return;
 
     int offset = gsetofft[gset];
     int k = gsetofft[gset + 1] - offset;
