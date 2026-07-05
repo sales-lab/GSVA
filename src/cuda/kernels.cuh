@@ -134,14 +134,25 @@ __global__ void gsea_walk_kernel(
 ) {
     typedef cub::BlockRadixSort<int, GSVA_WALK_THREADS, GSVA_WALK_ITEMS, gsva_float_t> BlockRadixSort;
     typedef cub::BlockScan<gsva_float_t, GSVA_WALK_THREADS> BlockScanFloat;
-    typedef cub::BlockScan<int, GSVA_WALK_THREADS> BlockScanInt;
-    typedef cub::BlockReduce<gsva_float_t, GSVA_WALK_THREADS> BlockReduce;
+
+    struct PeakValley {
+        gsva_float_t peak;
+        gsva_float_t valley;
+    };
+    struct PVReduceOp {
+        __device__ PeakValley operator()(PeakValley a, PeakValley b) const {
+            return {
+                a.peak > b.peak ? a.peak : b.peak,
+                a.valley < b.valley ? a.valley : b.valley
+            };
+        }
+    };
+    typedef cub::BlockReduce<PeakValley, GSVA_WALK_THREADS> BlockReducePV;
 
     union TempStorage {
         typename BlockRadixSort::TempStorage sort_storage;
-        typename BlockScanFloat::TempStorage scan_storage_float;
-        typename BlockScanInt::TempStorage scan_storage_int;
-        typename BlockReduce::TempStorage reduce_storage;
+        typename BlockScanFloat::TempStorage scan_storage;
+        typename BlockReducePV::TempStorage reduce_storage;
     };
 
     __shared__ TempStorage tmp;
@@ -177,23 +188,16 @@ __global__ void gsea_walk_kernel(
     __syncthreads();
 
     gsva_float_t stat_sums[GSVA_WALK_ITEMS];
-    int gene_ranks[GSVA_WALK_ITEMS];
-
     for (int i = 0; i < GSVA_WALK_ITEMS; i++) {
         if (keys[i] != INT_MAX) {
-            stat_sums[i]  = vals[i];
-            gene_ranks[i] = 1;
+            stat_sums[i] = vals[i];
         } else {
-            stat_sums[i]  = 0.0f;
-            gene_ranks[i] = 0;
+            stat_sums[i] = 0.0f;
         }
     }
 
-    BlockScanFloat(tmp.scan_storage_float).InclusiveSum(stat_sums, stat_sums);
-    __syncthreads();
-    BlockScanInt(tmp.scan_storage_int).ExclusiveSum(gene_ranks, gene_ranks);
-
-    if (tid == GSVA_WALK_THREADS-1) thread_total = stat_sums[GSVA_WALK_ITEMS - 1];
+    BlockScanFloat(tmp.scan_storage).InclusiveSum(stat_sums, stat_sums);
+    if (tid == GSVA_WALK_THREADS - 1) thread_total = stat_sums[GSVA_WALK_ITEMS - 1];
     __syncthreads();
 
     gsva_float_t stat_total = thread_total;
@@ -211,7 +215,7 @@ __global__ void gsea_walk_kernel(
 
         gsva_float_t stat_running = stat_sums[i] - vals[i];
         gsva_float_t stat_norm = stat_running / stat_total;
-        gsva_float_t neg_penalty    = (keys[i] - gene_ranks[i]) * neg_step;
+        gsva_float_t neg_penalty = (keys[i] - (thread_start + i)) * neg_step;
         gsva_float_t current_valley = stat_norm - neg_penalty;
         if (current_valley < thread_min_valley) thread_min_valley = current_valley;
 
@@ -221,22 +225,20 @@ __global__ void gsea_walk_kernel(
         if (current_peak > thread_max_peak) thread_max_peak = current_peak;
     }
 
-    struct RMax { __device__ gsva_float_t operator()(gsva_float_t a, gsva_float_t b) const { return a > b ? a : b; } };
-    struct RMin { __device__ gsva_float_t operator()(gsva_float_t a, gsva_float_t b) const { return a < b ? a : b; } };
-
-    gsva_float_t final_max_peak = BlockReduce(tmp.reduce_storage).Reduce(thread_max_peak, RMax());
-    __syncthreads();
-    gsva_float_t final_min_valley = BlockReduce(tmp.reduce_storage).Reduce(thread_min_valley, RMin());
+    PeakValley pv = {thread_max_peak, thread_min_valley};
+    PeakValley result = BlockReducePV(tmp.reduce_storage).Reduce(pv, PVReduceOp());
 
     if (tid == 0) {
-        gsva_float_t result = 0.0f;
+        gsva_float_t final_max_peak = result.peak;
+        gsva_float_t final_min_valley = result.valley;
+        gsva_float_t res = 0.0f;
         switch (score_type) {
-            case 0: result = final_max_peak + final_min_valley; break;
-            case 1: result = final_max_peak - final_min_valley; break;
-            case 2: result = (final_max_peak > GSVA_FABS(final_min_valley)) ? final_max_peak : final_min_valley; break;
-            default: result = -1.0f; break;
+            case 0: res = final_max_peak + final_min_valley; break;
+            case 1: res = final_max_peak - final_min_valley; break;
+            case 2: res = (final_max_peak > GSVA_FABS(final_min_valley)) ? final_max_peak : final_min_valley; break;
+            default: res = -1.0f; break;
         }
-        out_es[c * S + gset] = result;
+        out_es[c * S + gset] = res;
     }
 }
 
