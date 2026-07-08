@@ -76,6 +76,10 @@ gsva_device_t *gsva_device_create(SEXP genesetsidxR, int G, Rboolean sparse) {
   for (int s = 0; s < S; s++) {
     SEXP gsetidxR = VECTOR_ELT(genesetsidxR, s);
     int k = length(gsetidxR);
+    if (k > GSVA_MAX_GPU_GSET_SIZE) {
+      error("Gene set %d has %d genes, exceeding GPU limit of %d.",
+            s + 1, k, GSVA_MAX_GPU_GSET_SIZE);
+    }
     int cat;
     if (k <= 160) cat = 0;
     else if (k <= 256) cat = 1;

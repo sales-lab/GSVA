@@ -917,3 +917,6 @@ setMethod("wrapData", signature(container="SpatialExperiment"),
     }, error = function(e) FALSE)
 }
 
+.gsva_cuda_max_gset_size <- function() {
+    .Call("gsva_cuda_max_gset_size_R", PACKAGE = "GSVA")
+}

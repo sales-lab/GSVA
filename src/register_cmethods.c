@@ -89,6 +89,7 @@ static R_CallMethodDef callMethods[] = {
   {"gsva_score_genesets_cpu_R", (DL_FUNC) &gsva_score_genesets_cpu_R, 11},
 #ifdef HAVE_CUDA
   {"gsva_score_genesets_gpu_R", (DL_FUNC) &gsva_score_genesets_gpu_R, 9},
+  {"gsva_cuda_max_gset_size_R", (DL_FUNC) &gsva_cuda_max_gset_size_R, 0},
 #endif
   {"fetch_row_nzvals_R", (DL_FUNC) &fetch_row_nzvals_R, 3},
   {"row_rngs_nzrngs_RsparseMatrix_R", (DL_FUNC) &row_rngs_nzrngs_RsparseMatrix_R, 2},

@@ -2305,7 +2305,7 @@ compute.col.ranks <- function(Z, ties.method="last", drop.sparsity=FALSE,
 
     if (!any_na && device == "gpu") {
         gset_sizes  <- lengths(geneSetsIdx)
-        max_gpu_sz  <- 4096L
+        max_gpu_sz  <- .gsva_cuda_max_gset_size()
         gpu_idxs    <- which(gset_sizes <= max_gpu_sz)
         cpu_idxs    <- which(gset_sizes >  max_gpu_sz)
 
