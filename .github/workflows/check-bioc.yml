@@ -34,6 +34,8 @@ on:
       - 'RELEASE_*'
   schedule:
     - cron: '0 6 * * 0'
+permissions:
+  contents: read
 
 name: R-CMD-check-bioc
 
@@ -133,7 +135,7 @@ jobs:
       ## Most of these steps are the same as the ones in
       ## https://github.com/r-lib/actions/blob/master/examples/check-standard.yaml
       ## If they update their steps, we will also need to update ours.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
 
       - name: Set up RStudio Package Manager for R binary packages
         run: sudo apt-get -y install apt-file ; Rscript --vanilla -e 'install.packages("rspm", repos="https://cran.r-project.org")'
@@ -179,7 +181,7 @@ jobs:
 
       - name: Cache R packages
         if: "!contains(github.event.head_commit.message, '/nocache')"
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25  # v5.1.0
         with:
           path: /home/runner/work/_temp/Library
           key: ${{ env.cache-version }}-${{ runner.os }}-biocdocker-biocbranch-${{ needs.define-docker-info.outputs.biocversion }}-r-${{ steps.findrversion.outputs.rversion }}-bioc-${{ steps.findrversion.outputs.biocversionnum }}-${{ hashFiles('.github/depends.Rds') }}
@@ -252,8 +254,10 @@ jobs:
 
       - name: Test coverage
         if: github.ref == 'refs/heads/devel' && env.run_covr == 'true'
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
-          covr::codecov(token = "${{secrets.CODECOV_TOKEN}}")
+          covr::codecov()
         shell: Rscript {0}
 
       - name: Install pkgdown
@@ -280,7 +284,7 @@ jobs:
 
       - name: Upload check results
         if: failure()
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: ${{ runner.os }}-biocdocker-biocbranch-${{ needs.define-docker-info.outputs.biocversion }}-r-${{ steps.findrversion.outputs.rversion }}-bioc-${{ steps.findrversion.outputs.biocversionnum }}-results
           path: check
